@@ -2,28 +2,60 @@ use reqwest;
 use std::env;
 use dotenv::dotenv;
 use scraper::{Html, Selector};
+
 /*
-  Struct for a trade:
-  
-  struct trade {
-    Politician p;
-    string traded issuer;
-    (type?) publish_date;
-    (type?) traded_date;
-    u16 size: size;
-    u32: price_per_share;
-    char buy:		    // 'b' - Buy | 's' - Sell
-  };
 
-  Struct for a politician:
+  NEXT -- Implement fracture function to return trade objects
+	    * create new function that also parses out the politician information and returns them as politician objects
 
-  struct politician {
-    string Name
-    string state;
-    char position;	    // 'h' - House | 's' - Senate
-    char party;		    // 'r' - Republican | 'd' - Democrat | 'o' - Other
-  };
 */
+
+
+
+struct Politician {
+  name: String,	    // name of politician
+  state: String,    // state of politician
+  position: char,   // posititon of politician ('H' - House | 'S' - Senate)
+  party: char,	    // party of politician ('R' - Republican | 'D' - Democrat | 'O' - Other)
+}
+
+impl Politician {
+  // politician contructor
+  fn new(name: String, state: String, position: char, party: char) -> Politician {
+    Politician { name, state, position, party }
+  }
+  
+  fn print(&self) {
+ 
+    println!("Name: {} [\n\tState: {} Position: {} Party: {}", self.name, self.state, self.position, self.party);
+  }
+}
+
+struct Trade {
+  politician: Politician, // politician executing the trade
+  trade_issuer: String,	  // trade issuer
+  publish_date: String,	  // date trade was published
+  traded_date: String,	  // date trade was conducted
+  price: String,	  // price per share
+  size: String,		  // size of trade  
+  reporting_gap: String,  // gap between trade and publishing  
+  buy: String,		  // buy or sell (true - buy | false - sell)
+}
+
+impl Trade {
+  // trade constructor
+  fn new(politician: Politician, trade_issuer: String, publish_date: String, traded_date: String, reporting_gap: String, size: String, price: String, buy: String) -> Trade {
+
+    Trade { politician, trade_issuer, publish_date, traded_date, reporting_gap, size, price, buy }
+  }
+  
+  fn print(&self) {
+    self.politician.print();
+    println!("\tIssuer: {}\n\tPublished: {}\n\tTraded: {}", self.trade_issuer, self.publish_date, self.traded_date);
+    println!("\tPrice: {}\n\tSize: {}\n\tReported After: {} days\n\tType: {}", self.price, self.size, self.reporting_gap, self.buy);
+    println!("]\n");
+  }
+}
 
 fn fetch_html(url: String) -> Html {
   // send a request to fetch the url page
@@ -34,12 +66,10 @@ fn fetch_html(url: String) -> Html {
   Html::parse_document(&raw_document)
 }
 
-fn process_trade_fragment(fragment: &Html) -> [String; 11] {
+fn process_trade_fragment(fragment: &Html) -> Trade {
   
   // create selectors for the politician fragment
   // NEED TO FIGURE OUT HOW TO DISINGUISH BETWEEN PUBLISHED/TRADED/FILED AFTER
-  let politician_selector = Selector::parse("a.text-txt-interactive")
-    .expect("Failed to parse name.");
 
   let issuer_selector = Selector::parse("a.hover\\:no-underline.text-txt-interactive")
     .expect("Failed to parse issuer.");
@@ -64,7 +94,6 @@ fn process_trade_fragment(fragment: &Html) -> [String; 11] {
   let price_selector_na = Selector::parse("span.no-price")
     .expect("Failed to parse price selector na"); 
   // Extract inner text from the selectors
-  let politician_name = fragment.select(&politician_selector).next().expect("No name").inner_html();
   let issuer_name = fragment.select(&issuer_selector).next().expect("No issuer").inner_html();
   let type_name = fragment.select(&type_selector).next().expect("No type").inner_html();
   let date_top = fragment.select(&date_top_selector);
@@ -75,6 +104,7 @@ fn process_trade_fragment(fragment: &Html) -> [String; 11] {
     .or_else(|| fragment.select(&price_selector_na).next())
     .expect("No price").inner_html();     
   // iterate over the dates in a loop because there are multiple with the same selector 
+
   let top_dates: Vec<String> = date_top
     .map(|date| date.inner_html())
     .collect();
@@ -83,21 +113,47 @@ fn process_trade_fragment(fragment: &Html) -> [String; 11] {
     .map(|date| date.inner_html())
     .collect();
 
-  // return array of scraped data
-  [
-    politician_name,
-    issuer_name,
-    type_name,
-    top_dates.get(0).cloned().unwrap_or("".to_string()),
-    bottom_dates.get(0).cloned().unwrap_or("".to_string()),
-    top_dates.get(1).cloned().unwrap_or("".to_string()),
-    bottom_dates.get(1).cloned().unwrap_or("".to_string()),
-    filed_days,
-    "days".to_string(),
-    size,
-    price,
-      
-  ]
+  let published_date = format!("{} {}", top_dates[0], bottom_dates[0]); 
+  let traded_date = format!("{} {}", top_dates[1], bottom_dates[1]); 
+   
+  // create trade object with data
+  let politician = process_politician(fragment);  
+
+  Trade::new(politician, issuer_name, published_date, traded_date, filed_days, size, price, type_name)
+}
+
+fn process_politician(fragment: &Html) -> Politician {
+  
+  let name_selector = Selector::parse("a.text-txt-interactive")
+    .expect("Failed to parse name.");
+  
+  let party_selector = Selector::parse("span.q-field.party")
+    .expect("Failed to parse party.");
+  
+  let position_selector = Selector::parse("span.q-field.chamber")
+    .expect("Failed to parse position.");
+
+  let state_selector = Selector::parse("span.q-field.us-state-compact")
+    .expect("Failed to parse state."); 
+  
+  let name = fragment.select(&name_selector).next().expect("No name").inner_html();
+  let party = fragment.select(&party_selector).next().expect("No party").inner_html();
+  let position = fragment.select(&position_selector).next().expect("No position").inner_html();
+  let state = fragment.select(&state_selector).next().expect("No state").inner_html();
+    
+  let party = if party == "Republican" {
+    'R'
+  } else {
+    'D'
+  }; 
+
+  let position = if position == "House" {
+    'H'
+  } else {
+    'S'
+  };
+
+  Politician::new(name, state, position, party)
 }
 
 fn main() {
@@ -122,15 +178,12 @@ fn main() {
     .collect::<Vec<Html>>();
 
   // Debug output to check the fragments
-  let results: Vec<[String; 11]> = table_entry_fragments.iter().enumerate().filter_map(|(index, fragment)| {
-    if index != 0 {
-      Some(process_trade_fragment(fragment))
-    } else {
-      None
-    }
-  }).collect();
+  let trades: Vec<Trade> = table_entry_fragments.iter().skip(1).map(|fragment| {
+    process_trade_fragment(fragment)
+  })
+  .collect();
 
-  for (index, result) in results.iter().enumerate() {
-    println!("Result {}: {:?}", index + 1, result);
-  }       
+  for trade in trades {
+    trade.print();
+  }      
 }
