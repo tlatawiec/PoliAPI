@@ -1,4 +1,4 @@
-use crate::politician::Politician;
+use crate::models::politician::Politician;
 
 pub struct Trade {
   politician: Politician,	// politician executing the trade

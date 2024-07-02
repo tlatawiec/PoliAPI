@@ -1,8 +1,16 @@
+use crate::{
+
+  models:: {
+    politician::{
+      Politician,
+      Position,
+      Party,
+    },
+    trade::Trade,
+  }
+};
+
 use scraper::{Html, Selector};
-use crate::politician::Politician;
-use crate::politician::Position;
-use crate::politician::Party;
-use crate::trade::Trade;  
 use chrono::NaiveTime;
 use chrono::Timelike;
 

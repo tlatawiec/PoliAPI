@@ -1,20 +1,31 @@
-mod html_processing;
-mod web_fetch;
-mod politician;
-mod trade;
+mod data_scraper;
+mod models;
 
 use std::env;
-use trade::Trade;
 use dotenv::dotenv;
-use web_fetch::fetch_html;
 use scraper::{Html, Selector};
-use html_processing::{ process_trade_fragment, get_num_table_pages, gather_table_entries };
+
+use crate::{
+  data_scraper::{
+    html_processing::{
+      process_trade_fragment,
+      get_num_table_pages,
+      gather_table_entries,
+    },
+  web_fetch::fetch_html,
+  },
+  
+  models::trade::Trade,
+  models::trade_data::Data,
+};
 
 fn main() {
   dotenv().ok();	      // environment variables
   let mut page_number : u32;  // current page number being fetched
   let pages : u32;	      // number of pages to be fetched   
-
+  
+  let data = Data::new();  
+  
   pages = 5;
   page_number = 1; 
  
@@ -52,7 +63,6 @@ fn main() {
     for trade in &trades {
       trade.print();      
     }
-
     page_number += 1;
   }  
 }
