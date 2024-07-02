@@ -1,4 +1,5 @@
 use crate::models::politician::Politician;
+use std::hash::{Hash, Hasher};
 
 pub struct Trade {
   politician: Politician,	// politician executing the trade
@@ -33,5 +34,24 @@ impl Trade {
     println!("\tIssuer: {}\n\tPublished: {}\n\tTraded: {}", self.trade_issuer, self.publish_date, self.traded_date);
     println!("\tPrice: {}\n\tSize: {}\n\tReported After: {} days\n\tType: {}", self.price, self.size, self.reporting_gap, self.buy);
     println!("]\n");
+  }
+}
+
+// functions to allow for hashing trades
+impl PartialEq for Trade {
+  fn eq(&self, other: &Self) -> bool {
+    self.politician.name == other.politician.name &&
+    self.trade_issuer == other.trade_issuer &&
+    self.traded_date == other.publish_date &&
+    self.price == other.price &&
+    self.buy == other.buy
+  }
+}
+
+impl Eq for Trade {}
+
+impl Hash for Trade {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.politician.name.hash(state);
   }
 }
