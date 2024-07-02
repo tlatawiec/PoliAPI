@@ -1,25 +1,51 @@
 use scraper::{Html, Selector};
-use crate::politician::Party;
 use crate::politician::Politician;
 use crate::politician::Position;
+use crate::politician::Party;
 use crate::trade::Trade;  
+use chrono::NaiveTime;
+use chrono::Timelike;
 
-
-pub fn get_num_table_pages(fragment: &Html) {
-  let number_of_pages: u32;
-  
+// return the total number of table pages available for parsing
+pub fn get_num_table_pages(fragment: &Html) -> u32 { 
+  // get the number from the html
   let number_selector = Selector::parse("b")
-    .expect("Failed to parse number of pages.");
-  
+    .expect("Failed to parse number of pages.");  
   let number = fragment.select(&number_selector).nth(1).expect("No number.").inner_html();
-
-  println!("NUMBER OF PAGES: {}", number);
+  
+  // parse the number into an integer
+  let number = match number.parse::<u32>() {
+    Ok(value) => value,
+    Err(_) => {
+      eprintln!("Error parsing total number of pages.");
+      0
+    }
+  };
+  
+  // returrn the number
+  number  
 }
 
+// converts the time from UTC to EST
+pub fn convert_utc_to_eastern(utc_str: &str) -> String {
+  
+  // turn the string into "HH:MM" NaiveTime object
+  if let Ok(time) = NaiveTime::parse_from_str(utc_str, "%H:%M") {
+    // calculate the hour
+    let eastern_time = (time.hour() - 4 + 24) % 24;
+    // format the time "HH:MM" with the newly calculated hour
+    return format!("{:02}:{:02}", eastern_time, time.minute());
+  }
+  // if the format is not originally "HH:MM" return the date
+  utc_str.to_string()
+}
+
+// grabs all table entries and stores them in a vector of Html fragments
 pub fn gather_table_entries(document: &Html) -> Vec<Html> {
+  // select all table entries
   let table_entry_selector = Selector::parse("tr.q-tr").expect("Failed to parse table entries");
-  // find the table body
   let table_entries = document.select(&table_entry_selector).collect::<Vec<_>>();
+
   // Turn each selection into a fragment and collect in a vector
   let table_entry_fragments = table_entries
     .iter()
@@ -28,15 +54,14 @@ pub fn gather_table_entries(document: &Html) -> Vec<Html> {
       Html::parse_fragment(&entry_html)
     })
     .collect::<Vec<Html>>();
-
+  
+  // return vector of html fragments
   table_entry_fragments
 }
 
-pub fn process_trade_fragment(fragment: &Html) -> Trade {
-
-  // create selectors for the politician fragment
-  // NEED TO FIGURE OUT HOW TO DISINGUISH BETWEEN PUBLISHED/TRADED/FILED AFTER
-
+// process and entire trade fragment and create a trade struct with the parsed information
+pub fn process_trade_fragment(fragment: &Html) -> Trade { 
+  // initialize selectors 
   let issuer_selector = Selector::parse("a.hover\\:no-underline.text-txt-interactive")
     .expect("Failed to parse issuer.");
 
@@ -59,7 +84,8 @@ pub fn process_trade_fragment(fragment: &Html) -> Trade {
 
   let price_selector_na = Selector::parse("span.no-price")
     .expect("Failed to parse price selector na");
-  // Extract inner text from the selectors
+
+  // extract information from the selectors
   let issuer_name = fragment.select(&issuer_selector).next().expect("No issuer").inner_html();
   let type_name = fragment.select(&type_selector).next().expect("No type").inner_html();
   let date_top = fragment.select(&date_top_selector);
@@ -68,28 +94,32 @@ pub fn process_trade_fragment(fragment: &Html) -> Trade {
   let size = fragment.select(&size_selector).next().expect("No trade size").inner_html();
   let price = fragment.select(&price_selector).next()
     .or_else(|| fragment.select(&price_selector_na).next())
-    .expect("No price").inner_html();
+    .expect("No price").inner_html()
+;
   // iterate over the dates in a loop because there are multiple with the same selector
-
   let top_dates: Vec<String> = date_top
-    .map(|date| date.inner_html())
+    .map(|date| convert_utc_to_eastern(&date.inner_html()))
     .collect();
 
   let bottom_dates: Vec<String> = date_bottom
     .map(|date| date.inner_html())
     .collect();
-
+  
+  // format date data
   let published_date = format!("{} {}", top_dates[0], bottom_dates[0]);
   let traded_date = format!("{} {}", top_dates[1], bottom_dates[1]);
-
-  // create trade object with data
+  
+  // create politician object
   let politician = process_politician(fragment);
-
+  
+  // return trade object
   Trade::new(politician, issuer_name, published_date, traded_date, filed_days, size, price, type_name)
 }
 
+// process the politician fragment of the trade
 pub fn process_politician(fragment: &Html) -> Politician {
-
+  
+  // initialize selectors
   let name_selector = Selector::parse("a.text-txt-interactive")
     .expect("Failed to parse name.");
 
@@ -101,16 +131,20 @@ pub fn process_politician(fragment: &Html) -> Politician {
 
   let state_selector = Selector::parse("span.q-field.us-state-compact")
     .expect("Failed to parse state.");
-
+    
+  // grab information from selectors
   let name = fragment.select(&name_selector).next().expect("No name").inner_html();
   let party = fragment.select(&party_selector).next().expect("No party").inner_html();
   let position = fragment.select(&position_selector).next().expect("No position").inner_html();
   let state = fragment.select(&state_selector).next().expect("No state").inner_html();
-
+  
+  // set politician enums
   let party = if party == "Republican" {
     Party::Republican
-  } else {
+  } else if party == "Democrat" {
     Party::Democrat
+  } else {
+    Party::Independent
   };
 
   let position = if position == "House" {
@@ -119,6 +153,6 @@ pub fn process_politician(fragment: &Html) -> Politician {
     Position::Senate
   };
 
+  // return politician object
   Politician::new(name, state, position, party)
 }
-

@@ -1,21 +1,30 @@
 use crate::politician::Politician;
 
 pub struct Trade {
-  politician: Politician,	  // politician executing the trade
+  politician: Politician,	// politician executing the trade
   trade_issuer: String,         // trade issuer
   publish_date: String,         // date trade was published
   traded_date: String,          // date trade was conducted
-  price: String,		  // price per share
+  price: String,		// price per share
   size: String,                 // size of trade
-  reporting_gap: String,	  // gap between trade and publishing
+  reporting_gap: String,	// gap between trade and publishing
   buy: String,                  // buy or sell (true - buy | false - sell)
 }
 
 impl Trade {
-// trade constructor
+  // trade constructor
   pub fn new(politician: Politician, trade_issuer: String, publish_date: String, traded_date: String, reporting_gap: String, size: String, price: String, buy: String) -> Trade {
 
-    Trade { politician, trade_issuer, publish_date, traded_date, reporting_gap, size, price, buy }
+    Trade { 
+      politician,
+      trade_issuer,   
+      publish_date, 
+      traded_date, 
+      reporting_gap,
+      size, 
+      price, 
+      buy 
+    }
   }
     
     // print function for a trade
