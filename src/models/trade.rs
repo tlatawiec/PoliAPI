@@ -1,15 +1,14 @@
 use crate::models::politician::Politician;
-use std::hash::{Hash, Hasher};
 
 pub struct Trade {
-  politician: Politician,	// politician executing the trade
-  trade_issuer: String,         // trade issuer
-  publish_date: String,         // date trade was published
-  traded_date: String,          // date trade was conducted
-  price: String,		// price per share
-  size: String,                 // size of trade
-  reporting_gap: String,	// gap between trade and publishing
-  buy: String,                  // buy or sell (true - buy | false - sell)
+  pub politician: Politician,	// politician executing the trade
+  pub trade_issuer: String,         // trade issuer
+  pub publish_date: String,         // date trade was published
+  pub traded_date: String,          // date trade was conducted
+  pub price: String,		// price per share
+  pub size: String,                 // size of trade
+  pub reporting_gap: String,	// gap between trade and publishing
+  pub buy: String,                  // buy or sell (true - buy | false - sell)
 }
 
 impl Trade {
@@ -34,24 +33,5 @@ impl Trade {
     println!("\tIssuer: {}\n\tPublished: {}\n\tTraded: {}", self.trade_issuer, self.publish_date, self.traded_date);
     println!("\tPrice: {}\n\tSize: {}\n\tReported After: {} days\n\tType: {}", self.price, self.size, self.reporting_gap, self.buy);
     println!("]\n");
-  }
-}
-
-// functions to allow for hashing trades
-impl PartialEq for Trade {
-  fn eq(&self, other: &Self) -> bool {
-    self.politician.name == other.politician.name &&
-    self.trade_issuer == other.trade_issuer &&
-    self.traded_date == other.publish_date &&
-    self.price == other.price &&
-    self.buy == other.buy
-  }
-}
-
-impl Eq for Trade {}
-
-impl Hash for Trade {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    self.politician.name.hash(state);
   }
 }
