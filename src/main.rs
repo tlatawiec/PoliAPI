@@ -2,74 +2,74 @@ mod data_scraper;
 mod database;
 mod models;
 
-use std::env;
-use std::error::Error;
-use dotenv::dotenv;
-use scraper::{Html, Selector};
+use crate::data_scraper::scraper::scrape;
 use rusqlite::Connection;
 
-use crate::{
-  database::{
-    db::create_table,
-    db::insert_trade,
-    db::query_trades_by_politician_name,
-  },
-  data_scraper::{
-    html_processing::{
-      process_trade_fragment,
-      get_num_table_pages,
-      gather_table_entries,
-    },
-  web_fetch::fetch_html,
-  },
+use actix_web:: {
+  get,
+  web,
+  App, 
+  HttpResponse,
+  HttpServer,
+  Responder,
 };
 
-fn main() -> Result<(), Box<dyn Error>> {
-  dotenv().ok();	      // environment variables
+use crate::database::db::query_trades_by_politician_name;
 
-  let conn = Connection::open("trade_database.database")?; // initialize database
-  let _ = create_table(&conn);
-
-  let mut page_number = 1;    // current page number being fetched
-  let pages = 4;	      // number of pages to be fetched      
-
-  // fetch initial webpage
-  let url = env::var("WEBSITE_URL").expect("WEBSITE_URL not set.");
-  let document = fetch_html(&url);
-
-  // obtain the page number fragment
-  let table_next_page_selector = Selector::parse("p.hidden.leading-7.sm\\:block").expect("Failed to pparse out next page selector"); 
-  let table_next_page = document.select(&table_next_page_selector).next().expect("Failed to parse page selector");
-
-  // calculate the maximum number of pages available to parse 
-  get_num_table_pages(&(Html::parse_fragment(&table_next_page.html())));
-
-  // iterate over the pages
-  while page_number <= pages {  
-    // format the string so that it is in the form url/page=x to access all table pages
-    let page_url = format!("{}?page={}", url, page_number);
-    println!("{}", page_url);
-
-    // fetch next page url
-    let page_html = fetch_html(&page_url);
-
-    // gather the table contents
-    let html_fragments = gather_table_entries(&page_html);
-
-    // iterate over the table entries and process the fragments
-    for fragment in html_fragments.iter().skip(1) {
-      let trade = process_trade_fragment(fragment);
-      insert_trade(&conn, &trade)?; 
-    }
-
-    page_number += 1;
-  }  
-
-  let qtrades = query_trades_by_politician_name(&conn, "Don Beyer")?;
+#[get("/by_politician/{politician_name}")]
+async fn by_politician(path: web::Path<String>) -> impl Responder {
+  // establish the connection to the database (globalize this across the API?
+  let conn = Connection::open("trade_database.database").expect("Error opening database"); 
+  // extract the politician name from the path extractor
+  let politician_name = path.into_inner();
   
-  for trade in qtrades {
-    trade.print();
-  }
+  // query and serialize the politician at the path '/by_politician/(politician name)'
+  match query_trades_by_politician_name(&conn, &politician_name) {
+    // if returned successfully serialize the vector of trades
+    Ok(trades) => {
+      let mut serialized_trades = Vec::new();
 
-  Ok(())
+      for trade in &trades {
+	let serialized_trade = serde_json::json!({
+	  "Politician Name:": trade.politician.name,
+	  "Politician State:": trade.politician.state,
+	  "Politician Position:": format!("{}", trade.politician.position),
+	  "Politician Party:": format!("{}", trade.politician.party),
+	  "Trade Issuer:": trade.trade_issuer,
+	  "Publish Date:": trade.publish_date,
+	  "Traded Date:": trade.traded_date,
+	  "Price:": trade.price,
+	  "Size:": trade.size,
+	  "Reporting Gap:": trade.reporting_gap,
+	  "Type:": trade.buy,
+	});
+	serialized_trades.push(serialized_trade);	
+      } 
+      HttpResponse::Ok().json(serialized_trades)
+    }
+    // otherwise return an error
+    Err(err) => {
+      // fix this error handling
+      HttpResponse::Ok().body(format!("Database error: {}", err))
+    }
+  }   
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+  // scrape top 3 pages of the site and populate database with new entries
+  tokio::task::spawn_blocking(move || {
+    scrape(1).unwrap_or_else(|err| {
+      eprintln!("Error scraping and populating database: {}", err);
+    });
+  });
+
+  // BUILD WEB SERVICE HERE
+  HttpServer::new(|| {
+    App::new()
+      .service(by_politician)
+  })
+  .bind(("127.0.0.1", 8080))?
+  .run()
+  .await
 }
