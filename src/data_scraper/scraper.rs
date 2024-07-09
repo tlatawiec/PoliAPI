@@ -9,7 +9,6 @@ use crate::{
   database::{
     db::create_table,
     db::insert_trade,
-    db::query_trades_by_politician_name,
   },
   data_scraper::{
     html_processing::{
@@ -21,16 +20,18 @@ use crate::{
   },
 };
 
-
+// scrape the webpage and extract necessary information for the API to provide
 pub fn scrape(pages: u32) -> Result<(), Box<dyn Error>> {
-  
+   
   dotenv().ok();
   let url = env::var("WEBSITE_URL").expect("WEBSITE_URL not set.");
-
-  let conn = Connection::open("trade_database.database")?; // initialize database
+  
+  // initialize database
+  let conn = Connection::open("trade_database.database")?; 
   let _ = create_table(&conn);
-
-  let mut page_number = 1;    // current page number being fetched
+  
+  // current page number being fetched
+  let mut page_number = 1;    
   let document = fetch_html(&url);
 
     // obtain the page number fragment
@@ -55,17 +56,18 @@ pub fn scrape(pages: u32) -> Result<(), Box<dyn Error>> {
     // iterate over the table entries and process the fragments
     for fragment in html_fragments.iter().skip(1) {
       let trade = process_trade_fragment(fragment);
+      trade.print();
       insert_trade(&conn, &trade)?;
     }
 
     page_number += 1;
   }  
     
-  let qtrades = query_trades_by_politician_name(&conn, "Don Beyer")?;
+  //let qtrades = query_trades_by_politician_name(&conn, "Don Beyer")?;
 
-  for trade in qtrades {
-    trade.print();
-  }
+  //for trade in qtrades {
+  //  trade.print();
+  //}
 
   Ok(())
 }

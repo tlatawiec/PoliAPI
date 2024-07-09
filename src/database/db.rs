@@ -1,8 +1,8 @@
 use rusqlite::{ params, Connection, Result };
 
 use crate::models::trade::Trade;
-use crate::models::politician::Politician;
 
+// create the table if it does not exist
 pub fn create_table(conn: &Connection) -> Result<()> {
   conn.execute(
     "CREATE TABLE IF NOT EXISTS trade_db (
@@ -25,6 +25,7 @@ pub fn create_table(conn: &Connection) -> Result<()> {
   Ok(())
 }
 
+// insert a trade into the table
 pub fn insert_trade(conn: &Connection, trade: &Trade) -> Result<()> {
   conn.execute(
     "INSERT OR IGNORE INTO trade_db
@@ -46,36 +47,4 @@ pub fn insert_trade(conn: &Connection, trade: &Trade) -> Result<()> {
     ],
   )?;
   Ok(())
-}
-
-pub fn query_trades_by_politician_name(conn: &Connection, politician_name: &str) -> Result<Vec<Trade>> {
-  let mut sel_statement = conn.prepare("SELECT politician_name, politician_state,
-    politician_position, politician_party, trade_issuer, publish_date, traded_date, price, size,
-    reporting_gap, buy FROM trade_db WHERE politician_name = ?1")?;
-
-  let trade_iter = sel_statement.query_map([politician_name], |row| {
-    Ok(Trade {	
-	politician: Politician {
-	  name: row.get(0)?,
-	  state: row.get(1)?,
-	  position: row.get(2)?,
-	  party: row.get(3)?,
-	},
-	trade_issuer: row.get(4)?,
-	publish_date: row.get(5)?,
-	traded_date: row.get(6)?,
-	price: row.get(7)?,
-	size: row.get(8)?,
-	reporting_gap: row.get(9)?,
-	buy: row.get(10)?,	
-    })
-  })?;
-
-  let mut trades = Vec::new();
-
-  for trade in trade_iter {
-    trades.push(trade?);
-  }
-
-  Ok(trades)
 }

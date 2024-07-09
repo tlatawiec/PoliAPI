@@ -1,5 +1,6 @@
-use crate::{
+use scraper::{Html, Selector};
 
+use crate::{
   models:: {
     politician::{
       Politician,
@@ -10,9 +11,13 @@ use crate::{
   }
 };
 
-use scraper::{Html, Selector};
-use chrono::NaiveTime;
-use chrono::Timelike;
+use chrono::{
+  NaiveTime,
+  NaiveDate,
+  Timelike,
+  Duration,
+  Utc,
+};
 
 // return the total number of table pages available for parsing
 pub fn get_num_table_pages(fragment: &Html) -> u32 { 
@@ -32,6 +37,31 @@ pub fn get_num_table_pages(fragment: &Html) -> u32 {
   
   // returrn the number
   number  
+}
+
+// convert dates to a standard 'YYYY-MM-DD'
+pub fn convert_date(date: &str) -> Option<String> {
+  // get todays and yesterdays date  
+  let today = Utc::now().date_naive();
+  let yesterday = today - Duration::days(1);
+  
+  // if the date is in form "HH:MM Today" convert it to today's date
+  if date.contains("Today") {
+    return Some(today.format("%Y-%m-%d").to_string());
+  } 
+  
+  // if the date is in form "HH:MM Yesterday" convert it to yesterday's date
+  else if date.contains("Yesterday") {
+    return Some(yesterday.format("%Y-%m-%d").to_string());
+  }
+  
+  // otherwise convert "DD MM YYYY" to standard format
+  if let Ok(date) = NaiveDate::parse_from_str(date, "%d %b %Y") {
+
+    return Some(date.format("%Y-%m-%d").to_string());
+  }
+
+  None
 }
 
 // converts the time from UTC to EST
@@ -113,10 +143,22 @@ pub fn process_trade_fragment(fragment: &Html) -> Trade {
     .map(|date| date.inner_html())
     .collect();
   
-  // format date data
-  let published_date = format!("{} {}", top_dates[0], bottom_dates[0]);
-  let traded_date = format!("{} {}", top_dates[1], bottom_dates[1]);
-  
+  // parse the dates and convert them to a standar 'YYYY-MM-DD'  
+  let published_date;
+  let traded_date;
+
+  if let Some(date) = convert_date(&format!("{} {}", top_dates[0], bottom_dates[0])) {
+    published_date = date;  
+  } else {
+    published_date = "FAILED TO PARSE".to_string();
+  }
+
+  if let Some(date) = convert_date(&format!("{} {}", top_dates[1], bottom_dates[1])) {
+    traded_date = date;
+  } else {
+    traded_date = "FAILED TO PARSE".to_string();
+  }
+   
   // create politician object
   let politician = process_politician(fragment);
   
