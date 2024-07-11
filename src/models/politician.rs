@@ -35,12 +35,12 @@ impl fmt::Display for Position {
 }
 
 impl ToSql for Position {
-    fn to_sql(&self) -> Result<ToSqlOutput> {
-        match *self {
-            Position::House => Ok(ToSqlOutput::from("House")),
-            Position::Senate => Ok(ToSqlOutput::from("Senate")),
-        }
+  fn to_sql(&self) -> Result<ToSqlOutput> {
+    match *self {
+      Position::House => Ok(ToSqlOutput::from("House")),
+      Position::Senate => Ok(ToSqlOutput::from("Senate")),
     }
+  }
 }
 
 impl FromSql for Position {

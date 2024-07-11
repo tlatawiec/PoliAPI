@@ -11,7 +11,7 @@ pub fn serialize_trade(trade: &Trade) -> serde_json::Value {
     "Trade Issuer:": trade.trade_issuer,
     "Publish Date:": trade.publish_date,
     "Traded Date:": trade.traded_date,
-    "Price:": trade.price,
+    "Price:": format!("{}", trade.price),
     "Size:": trade.size,
     "Reporting Gap:": trade.reporting_gap,
     "Type:": trade.buy,

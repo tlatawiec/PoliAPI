@@ -31,7 +31,7 @@ pub fn scrape(pages: u32) -> Result<(), Box<dyn Error>> {
   let _ = create_table(&conn);
   
   // current page number being fetched
-  let mut page_number = 1;    
+  let mut page_number = 1;
   let document = fetch_html(&url);
 
     // obtain the page number fragment

@@ -158,7 +158,7 @@ pub fn process_trade_fragment(fragment: &Html) -> Trade {
   } else {
     traded_date = "FAILED TO PARSE".to_string();
   }
-   
+
   // create politician object
   let politician = process_politician(fragment);
   

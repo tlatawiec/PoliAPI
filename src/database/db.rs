@@ -40,11 +40,11 @@ pub fn insert_trade(conn: &Connection, trade: &Trade) -> Result<()> {
       trade.trade_issuer,
       trade.publish_date,
       trade.traded_date,
-      trade.price,
+      trade.price.to_string(),
       trade.size,
       trade.reporting_gap,
       trade.buy
     ],
-  )?;
+  )?; 
   Ok(())
 }

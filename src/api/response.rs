@@ -7,12 +7,23 @@ use actix_web:: {
 };
 
 use crate::api::serialization::respond;
-use crate::database::queries::query_trades_by_politician_name;
+use crate::database::queries::{
+  query_trades_by_politician_name,
+  query_trades_by_publish_date,
+  query_trades_by_trade_date,
+  query_trades_by_price_over,
+  query_trades_by_price_under,
+  query_trades_by_price_na,
+  query_trades_by_price_range,
+  query_trades_by_size, 
+  query_trades_by_issuer_name,
+  query_trades_by_type,
+};
 
 #[get("/politician/{politician_name}")]
 pub async fn by_politician(path: web::Path<String>) -> impl Responder {
   // establish the connection to the database (globalize this across the API?)
-  let conn = Connection::open("trade_database.database").expect("Error opening database");
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   // extract the politician name from the path extractor
   let politician_name = path.into_inner();
 
@@ -24,3 +35,156 @@ pub async fn by_politician(path: web::Path<String>) -> impl Responder {
     Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)), 
   }
 }
+
+#[get("/publish_date/recent")]
+pub async fn recent_published() -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  
+  match query_trades_by_publish_date(&conn, 2) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)),
+  }
+}
+
+#[get("/published_within/{x}")]
+pub async fn published_within(path: web::Path<i64>) -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  let num_weeks = path.into_inner();
+ 
+  match query_trades_by_publish_date(&conn, num_weeks) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)),
+  }
+}
+
+
+#[get("/traded_date/recent")]
+pub async fn recent_traded() -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  
+  match query_trades_by_trade_date(&conn, 2) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)),
+  }
+}
+
+#[get("/traded_within/{x}")]
+pub async fn traded_within(path: web::Path<i64>) -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  let num_weeks = path.into_inner();
+ 
+  match query_trades_by_trade_date(&conn, num_weeks) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)),
+  }
+}
+
+#[get("/price/over/{x}")]
+pub async fn price_over(path: web::Path<String>) -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  let price = path.into_inner();
+
+  match query_trades_by_price_over(&conn, price) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)),
+  }
+}
+
+#[get("/price/under/{x}")]
+pub async fn price_under(path: web::Path<String>) -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  let price = path.into_inner();
+
+  match query_trades_by_price_under(&conn, price) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)),
+  }
+}
+
+#[get("/price/na")]
+pub async fn price_na() -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  
+  match query_trades_by_price_na(&conn) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)),
+  }
+}
+
+#[get("/price/{l}-{h}")]
+pub async fn price_range(path: web::Path<(f64, f64)>) -> impl Responder { 
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+
+  let prices = path.into_inner();
+  let price_low = prices.0;
+  let price_high = prices.1;
+
+  match query_trades_by_price_range(&conn, price_low, price_high) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)), 
+  }
+}
+
+#[get("/size/{trade_size}")]
+pub async fn trade_size(path: web::Path<i32>) -> impl Responder { 
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  let trade_size = path.into_inner();
+
+  let size = match trade_size {
+    0 => "1K–15K",
+    1 => "15K–50K",
+    2 => "50K–100K",
+    3 => "100K–250K",
+    4 => "250K–500K",
+    5 => "500K–1M",
+    6 => "1M–5M",
+    7 => "5M–25M",
+    8 => "25M–50M",
+    _ => "",
+  };
+  
+  match query_trades_by_size(&conn, size) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)), 
+  }
+}
+
+#[get("/issuer/{issuer_name}")]
+pub async fn by_issuer(path: web::Path<String>) -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  let issuer_name = path.into_inner();
+
+  match query_trades_by_issuer_name(&conn, &issuer_name) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)), 
+  }
+}
+
+#[get("/type/{type}")]
+pub async fn by_type(path: web::Path<String>) -> impl Responder {
+  let conn = Connection::open("trade_database.database").expect("Couldn't open database");
+  let bos = path.into_inner();
+
+  match query_trades_by_type(&conn, &bos) {
+    Ok(trades) => respond(trades),
+    Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)), 
+  }
+}
+
+#[get("/")]
+pub async fn root() -> impl Responder {
+  HttpResponse::Ok().body(
+   "\n/politician/{politician_name} | (get all trades by certain politician)\n
+    /publish_date/recent | (last two weeks of published trades)\n
+    /published_within/{x} | (last x weeks of published trades)\n
+    /traded_date/recent | (last two weeks of trades)\n
+    /traded_within/{x} | (last x weeks of trades)\n
+    /price/over/{x} | (trades with a price over x)\n
+    /price/under/{x} | (trades with a price under x)\n
+    /price/na |	(trades with N/A price)\n
+    /size/{x} | (0-8) (trade size)\n
+    /issuer/{issuer_name} | (get all trades by issuer)\n
+    /type/{type} | (buy / sell)")
+}
+
+
