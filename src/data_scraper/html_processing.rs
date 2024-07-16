@@ -146,14 +146,17 @@ pub fn process_trade_fragment(fragment: &Html) -> Trade {
   // parse the dates and convert them to a standar 'YYYY-MM-DD'  
   let published_date;
   let traded_date;
+  
+  let td1 = top_dates[0].replace("Sept", "Sep");
+  let td2 = top_dates[1].replace("Sept", "Sep");
 
-  if let Some(date) = convert_date(&format!("{} {}", top_dates[0], bottom_dates[0])) {
+  if let Some(date) = convert_date(&format!("{} {}", td1, bottom_dates[0])) {
     published_date = date;  
   } else {
     published_date = "FAILED TO PARSE".to_string();
   }
 
-  if let Some(date) = convert_date(&format!("{} {}", top_dates[1], bottom_dates[1])) {
+  if let Some(date) = convert_date(&format!("{} {}", td2, bottom_dates[1])) {
     traded_date = date;
   } else {
     traded_date = "FAILED TO PARSE".to_string();

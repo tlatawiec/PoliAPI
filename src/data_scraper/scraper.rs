@@ -56,7 +56,7 @@ pub fn scrape(pages: u32) -> Result<(), Box<dyn Error>> {
     // iterate over the table entries and process the fragments
     for fragment in html_fragments.iter().skip(1) {
       let trade = process_trade_fragment(fragment);
-      trade.print();
+//      trade.print();
       insert_trade(&conn, &trade)?;
     }
 

@@ -29,7 +29,7 @@ use crate::data_scraper::scraper::scrape;
 async fn main() -> std::io::Result<()> {
   // scrape top 3 pages of the site and populate database with new entries
   tokio::task::spawn_blocking(move || {
-    scrape(1).unwrap_or_else(|err| {
+    scrape(1000).unwrap_or_else(|err| {
       eprintln!("Error scraping and populating database: {}", err);
     });
   });
