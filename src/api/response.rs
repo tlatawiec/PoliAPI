@@ -20,7 +20,7 @@ use crate::database::queries::{
   query_trades_by_type,
 };
 
-#[get("/politician/{politician_name}")]
+#[get("/api/politician/{politician_name}")]
 pub async fn by_politician(path: web::Path<String>) -> impl Responder {
   // establish the connection to the database (globalize this across the API?)
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
@@ -36,7 +36,7 @@ pub async fn by_politician(path: web::Path<String>) -> impl Responder {
   }
 }
 
-#[get("/publish_date/recent")]
+#[get("/api/publish_date/recent")]
 pub async fn recent_published() -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   
@@ -46,7 +46,7 @@ pub async fn recent_published() -> impl Responder {
   }
 }
 
-#[get("/published_within/{x}")]
+#[get("/api/published_within/{x}")]
 pub async fn published_within(path: web::Path<i64>) -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   let num_weeks = path.into_inner();
@@ -58,7 +58,7 @@ pub async fn published_within(path: web::Path<i64>) -> impl Responder {
 }
 
 
-#[get("/traded_date/recent")]
+#[get("/api/traded_date/recent")]
 pub async fn recent_traded() -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   
@@ -68,7 +68,7 @@ pub async fn recent_traded() -> impl Responder {
   }
 }
 
-#[get("/traded_within/{x}")]
+#[get("/api/traded_within/{x}")]
 pub async fn traded_within(path: web::Path<i64>) -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   let num_weeks = path.into_inner();
@@ -79,7 +79,7 @@ pub async fn traded_within(path: web::Path<i64>) -> impl Responder {
   }
 }
 
-#[get("/price/over/{x}")]
+#[get("/api/price/over/{x}")]
 pub async fn price_over(path: web::Path<String>) -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   let price = path.into_inner();
@@ -90,7 +90,7 @@ pub async fn price_over(path: web::Path<String>) -> impl Responder {
   }
 }
 
-#[get("/price/under/{x}")]
+#[get("/api/price/under/{x}")]
 pub async fn price_under(path: web::Path<String>) -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   let price = path.into_inner();
@@ -101,7 +101,7 @@ pub async fn price_under(path: web::Path<String>) -> impl Responder {
   }
 }
 
-#[get("/price/na")]
+#[get("/api/price/na")]
 pub async fn price_na() -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   
@@ -111,7 +111,7 @@ pub async fn price_na() -> impl Responder {
   }
 }
 
-#[get("/price/{l}-{h}")]
+#[get("/api/price/{l}-{h}")]
 pub async fn price_range(path: web::Path<(f64, f64)>) -> impl Responder { 
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
 
@@ -125,7 +125,7 @@ pub async fn price_range(path: web::Path<(f64, f64)>) -> impl Responder {
   }
 }
 
-#[get("/size/{trade_size}")]
+#[get("/api/size/{trade_size}")]
 pub async fn trade_size(path: web::Path<i32>) -> impl Responder { 
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   let trade_size = path.into_inner();
@@ -149,7 +149,7 @@ pub async fn trade_size(path: web::Path<i32>) -> impl Responder {
   }
 }
 
-#[get("/issuer/{issuer_name}")]
+#[get("/api/issuer/{issuer_name}")]
 pub async fn by_issuer(path: web::Path<String>) -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   let issuer_name = path.into_inner();
@@ -160,7 +160,7 @@ pub async fn by_issuer(path: web::Path<String>) -> impl Responder {
   }
 }
 
-#[get("/type/{type}")]
+#[get("/api/type/{type}")]
 pub async fn by_type(path: web::Path<String>) -> impl Responder {
   let conn = Connection::open("trade_database.database").expect("Couldn't open database");
   let bos = path.into_inner();
@@ -170,21 +170,3 @@ pub async fn by_type(path: web::Path<String>) -> impl Responder {
     Err(err) => HttpResponse::InternalServerError().body(format!("Database error: {}", err)), 
   }
 }
-
-#[get("/")]
-pub async fn root() -> impl Responder {
-  HttpResponse::Ok().body(
-   "\n/politician/{politician_name} | (get all trades by certain politician)\n
-    /publish_date/recent | (last two weeks of published trades)\n
-    /published_within/{x} | (last x weeks of published trades)\n
-    /traded_date/recent | (last two weeks of trades)\n
-    /traded_within/{x} | (last x weeks of trades)\n
-    /price/over/{x} | (trades with a price over x)\n
-    /price/under/{x} | (trades with a price under x)\n
-    /price/na |	(trades with N/A price)\n
-    /size/{x} | (0-8) (trade size)\n
-    /issuer/{issuer_name} | (get all trades by issuer)\n
-    /type/{type} | (buy / sell)")
-}
-
-

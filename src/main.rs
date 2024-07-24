@@ -9,7 +9,6 @@ use actix_web::{
 };
 
 use crate::api::response::{
-  root,
   by_politician,
   recent_published,
   published_within,
@@ -29,7 +28,7 @@ use crate::data_scraper::scraper::scrape;
 async fn main() -> std::io::Result<()> {
   // scrape top 3 pages of the site and populate database with new entries
   tokio::task::spawn_blocking(move || {
-    scrape(1000).unwrap_or_else(|err| {
+    scrape(10).unwrap_or_else(|err| {
       eprintln!("Error scraping and populating database: {}", err);
     });
   });
@@ -37,7 +36,6 @@ async fn main() -> std::io::Result<()> {
   // BUILD WEB SERVICE HERE
   HttpServer::new(|| {
     App::new()
-      .service(root)
       .service(by_politician)
       .service(recent_published)
       .service(published_within)
