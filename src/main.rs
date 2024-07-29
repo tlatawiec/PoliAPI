@@ -24,17 +24,27 @@ use crate::api::response::{
 };
 use crate::data_scraper::scraper::scrape;
 
+use tokio::time::{interval, Duration};
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-  // scrape top 3 pages of the site and populate database with new entries
-  tokio::task::spawn_blocking(move || {
-    scrape(10).unwrap_or_else(|err| {
-      eprintln!("Error scraping and populating database: {}", err);
-    });
+  // Schedule the scraper to run every 15 minutes
+  let scraper_handle = tokio::spawn(async {
+  let mut interval = interval(Duration::from_secs(900)); // 15 minutes
+
+    loop {
+      interval.tick().await;
+      tokio::task::spawn_blocking(|| {
+        if let Err(err) = scrape(3) {
+          eprintln!("Error scraping and populating database: {}", err);
+        }
+      }).await.unwrap();
+    }
   });
 
-  // BUILD WEB SERVICE HERE
-  HttpServer::new(|| {
+  // Run the Actix web server
+  let server_handle = HttpServer::new(|| {
     App::new()
       .service(by_politician)
       .service(recent_published)
@@ -49,8 +59,21 @@ async fn main() -> std::io::Result<()> {
       .service(by_issuer)
       .service(by_type)
   })
-
   .bind(("127.0.0.1", 8080))?
-  .run()
-  .await
+  .run();
+
+    // Run both the scraper and the server concurrently
+    tokio::select! {
+        res = scraper_handle => {
+            if let Err(e) = res {
+                eprintln!("Scraper task failed: {:?}", e);
+            }
+        },
+        res = server_handle => {
+            if let Err(e) = res {
+                eprintln!("Server task failed: {:?}", e);
+            }
+        },
+    }
+  Ok(())
 }
