@@ -13,31 +13,31 @@ The Politician Trade Tracker, also known as PoliTracker, is a comprehensive syst
 
   ENDPOINTS:
     
-    /politician/{politician_name} | (trades by certain politician)
+    /api/politician/{politician_name} | (trades by certain politician)
     
-    /publish_date/recent | (last two weeks of published trades)
+    /api/publish_date/recent | (last two weeks of published trades)
     
-    /published_within/{x} | (last x weeks of published trades)
+    /api/published_within/{x} | (last x weeks of published trades)
     
-    /traded_date/recent | (last two weeks of trades)
+    /api/traded_date/recent | (last two weeks of trades)
     
-    /traded_within/{x} | (last x weeks of trades)
+    /api/traded_within/{x} | (last x weeks of trades)
     
-    /price/over/{x} | (trades with a price over x)
+    /api/price/over/{x} | (trades with a price over x)
     
-    /price/under/{x} | (trades with a price under x)
+    /api/price/under/{x} | (trades with a price under x)
     
-    /price/na | (trades with N/A price)
+    /api/price/na | (trades with N/A price)
     
-    /size/{x} | (0-8) (trade size) (0 -> 1K-15K | 1 -> 15K-50K | 2 -> 50K-100K | 3 -> 100K-250K | 4 -> 250K-500K | 5 -> 500K-1M | 6 -> 1M-5M | 7 -> 5M-25M | 8 -> 25M-50M)
+    /api/size/{x} | (0-8) (trade size) (0 -> 1K-15K | 1 -> 15K-50K | 2 -> 50K-100K | 3 -> 100K-250K | 4 -> 250K-500K | 5 -> 500K-1M | 6 -> 1M-5M | 7 -> 5M-25M | 8 -> 25M-50M)
     
-    /issuer/{issuer_name} | (get all trades by issuer)
+    /api/issuer/{issuer_name} | (get all trades by issuer)
     
-    /type/{type} | (buy / sell)
+    /api/type/{type} | (buy / sell)
 
   Example Request:
   
-     port/politician/Nancy Pelosi
+     api.poliapi.com/politician/Nancy Pelosi
 
   Example Response:
   
