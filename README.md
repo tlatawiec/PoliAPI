@@ -1,4 +1,4 @@
-# PoliTracker is a Politician Trade Tracker Designed to Allow you to Take Advantage of Inside Trades
+# (Decommisioned) PoliTracker is a Politician Trade Tracker Designed to Allow you to Take Advantage of Inside Trades
 
 ## Overview
 
